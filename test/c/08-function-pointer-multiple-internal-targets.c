@@ -16,18 +16,6 @@ main(int argc, char **argv) {
   dispatcher(b);
   dispatcher(c);
   dispatcher(d);
-  /*if (argc & 1) {
-    dispatcher(a);
-  } else {
-    dispatcher(b);
-  }
-
-  if (argc & 2) {
-    dispatcher(c);
-  } else {
-    dispatcher(d);
-  }*/
-
   return 0;
 }
 

@@ -1,6 +1,6 @@
 
-#include "llvm/ADT/Triple.h"
 #include "llvm/ADT/SmallString.h"
+#include "llvm/ADT/Triple.h"
 #include "llvm/Analysis/TargetLibraryInfo.h"
 #include "llvm/AsmParser/Parser.h"
 #include "llvm/Bitcode/ReaderWriter.h"
@@ -10,20 +10,20 @@
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/IRPrintingPasses.h"
 #include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Verifier.h"
 #include "llvm/IRReader/IRReader.h"
 #include "llvm/Linker/Linker.h"
 #include "llvm/MC/SubtargetFeature.h"
-#include "llvm/IR/LegacyPassManager.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/FileUtilities.h"
 #include "llvm/Support/FormattedStream.h"
 #include "llvm/Support/Host.h"
 #include "llvm/Support/ManagedStatic.h"
-#include "llvm/Support/PrettyStackTrace.h"
 #include "llvm/Support/Path.h"
+#include "llvm/Support/PrettyStackTrace.h"
 #include "llvm/Support/Program.h"
 #include "llvm/Support/Signals.h"
 #include "llvm/Support/SourceMgr.h"
@@ -42,6 +42,7 @@
 
 #include "config.h"
 
+
 using namespace llvm;
 using std::string;
 using std::unique_ptr;
@@ -53,47 +54,47 @@ using llvm::legacy::PassManager;
 
 static cl::OptionCategory callProfilerCategory{"call profiler options"};
 
-static cl::opt<string> inPath{
-  cl::Positional,
-  cl::desc{"<Module to analyze>"},
-  cl::value_desc{"bitcode filename"},
-  cl::init(""),
-  cl::Required,
-  cl::cat{callProfilerCategory}};
+static cl::opt<string> inPath{cl::Positional,
+                              cl::desc{"<Module to analyze>"},
+                              cl::value_desc{"bitcode filename"},
+                              cl::init(""),
+                              cl::Required,
+                              cl::cat{callProfilerCategory}};
 
 static cl::opt<string> outFile{"o",
-  cl::desc{"Filename of the instrumented program"},
-  cl::value_desc{"filename"},
-  cl::init(""),
-  cl::Required,
-  cl::cat{callProfilerCategory}};
+                               cl::desc{"Filename of the instrumented program"},
+                               cl::value_desc{"filename"},
+                               cl::init(""),
+                               cl::Required,
+                               cl::cat{callProfilerCategory}};
 
-static cl::opt<char> optLevel{"O",
-  cl::desc{"Optimization level. [-O0, -O1, -O2, or -O3] (default = '-O2')"},
-  cl::Prefix,
-  cl::ZeroOrMore,
-  cl::init('2'),
-  cl::cat{callProfilerCategory}};
+static cl::opt<char> optLevel{
+    "O",
+    cl::desc{"Optimization level. [-O0, -O1, -O2, or -O3] (default = '-O2')"},
+    cl::Prefix,
+    cl::ZeroOrMore,
+    cl::init('2'),
+    cl::cat{callProfilerCategory}};
 
 static cl::list<string> libPaths{"L",
-  cl::Prefix,
-  cl::desc{"Specify a library search path"},
-  cl::value_desc{"directory"},
-  cl::cat{callProfilerCategory}};
+                                 cl::Prefix,
+                                 cl::desc{"Specify a library search path"},
+                                 cl::value_desc{"directory"},
+                                 cl::cat{callProfilerCategory}};
 
 static cl::list<string> libraries{"l",
-  cl::Prefix,
-  cl::desc{"Specify libraries to link to"},
-  cl::value_desc{"library prefix"},
-  cl::cat{callProfilerCategory}};
+                                  cl::Prefix,
+                                  cl::desc{"Specify libraries to link to"},
+                                  cl::value_desc{"library prefix"},
+                                  cl::cat{callProfilerCategory}};
 
 
 static void
-compile(Module &m, string outputPath) {
+compile(Module& m, StringRef outputPath) {
   string err;
 
-  Triple triple = Triple(m.getTargetTriple());
-  Target const *target = TargetRegistry::lookupTarget(MArch, triple, err);
+  Triple triple        = Triple(m.getTargetTriple());
+  Target const* target = TargetRegistry::lookupTarget(MArch, triple, err);
   if (!target) {
     report_fatal_error("Unable to find target:\n " + err);
   }
@@ -102,7 +103,7 @@ compile(Module &m, string outputPath) {
   switch (optLevel) {
     default:
       report_fatal_error("Invalid optimization level.\n");
-      // No fall through
+    // No fall through
     case '0': level = CodeGenOpt::None; break;
     case '1': level = CodeGenOpt::Less; break;
     case '2': level = CodeGenOpt::Default; break;
@@ -111,10 +112,14 @@ compile(Module &m, string outputPath) {
 
   string FeaturesStr;
   TargetOptions options = InitTargetOptionsFromCodeGenFlags();
-  unique_ptr<TargetMachine>
-    machine(target->createTargetMachine(triple.getTriple(),
-                                        MCPU, FeaturesStr, options,
-                                        getRelocModel(), CMModel, level));
+  unique_ptr<TargetMachine> machine(
+      target->createTargetMachine(triple.getTriple(),
+                                  MCPU,
+                                  FeaturesStr,
+                                  options,
+                                  getRelocModel(),
+                                  CMModel,
+                                  level));
   assert(machine.get() && "Could not allocate target machine!");
 
   if (FloatABIForCalls != FloatABI::Default) {
@@ -122,8 +127,8 @@ compile(Module &m, string outputPath) {
   }
 
   std::error_code errc;
-  auto out = std::make_unique<tool_output_file>(outputPath.c_str(),
-                                                errc, sys::fs::F_None);
+  auto out =
+      std::make_unique<tool_output_file>(outputPath, errc, sys::fs::F_None);
   if (!out) {
     report_fatal_error("Unable to create file:\n " + errc.message());
   }
@@ -132,19 +137,19 @@ compile(Module &m, string outputPath) {
   legacy::PassManager pm;
 
   // Add target specific info and transforms
-  TargetLibraryInfoImpl tlii(Triple(m.getTargetTriple()));
+  TargetLibraryInfoImpl tlii(triple);
   pm.add(new TargetLibraryInfoWrapperPass(tlii));
 
   m.setDataLayout(machine->createDataLayout());
 
-  { // Bound this scope
-    raw_pwrite_stream *os(&out->os());
+  {  // Bound this scope
+    raw_pwrite_stream* os(&out->os());
 
     FileType = TargetMachine::CGFT_ObjectFile;
     std::unique_ptr<buffer_ostream> bos;
     if (!out->os().supportsSeeking()) {
       bos = std::make_unique<buffer_ostream>(*os);
-      os = bos.get();
+      os  = bos.get();
     }
 
     // Ask the target to add backend passes as necessary.
@@ -165,7 +170,7 @@ compile(Module &m, string outputPath) {
 
 
 static void
-link(string const &objectFile, string const &outputFile) {
+link(StringRef objectFile, StringRef outputFile) {
   auto clang = findProgramByName("clang++");
   string opt("-O");
   opt += optLevel;
@@ -175,46 +180,46 @@ link(string const &objectFile, string const &outputFile) {
   }
   vector<string> args{clang.get(), opt, "-o", outputFile, objectFile};
 
-  for (auto &libPath : libPaths) {
+  for (auto& libPath : libPaths) {
     args.push_back("-L" + libPath);
   }
 
-  for (auto &library : libraries) {
+  for (auto& library : libraries) {
     args.push_back("-l" + library);
   }
 
-  vector<char const *> charArgs;
-  for (auto &arg : args) {
+  vector<char const*> charArgs;
+  for (auto& arg : args) {
     charArgs.push_back(arg.c_str());
   }
   charArgs.push_back(nullptr);
 
-  for (auto &arg : args) {
+  for (auto& arg : args) {
     outs() << arg.c_str() << " ";
   }
   outs() << "\n";
 
   string err;
-  if (-1 == ExecuteAndWait(clang.get(), &charArgs[0],
-                           nullptr, nullptr, 0, 0, &err)) {
+  if (-1 == ExecuteAndWait(
+                clang.get(), &charArgs[0], nullptr, nullptr, 0, 0, &err)) {
     report_fatal_error("Unable to link output file.");
   }
 }
 
 
 static void
-generateBinary(Module &m, string const &outputFilename) {
+generateBinary(Module& m, StringRef outputFilename) {
   // Compiling to native should allow things to keep working even when the
   // version of clang on the system and the version of LLVM used to compile
   // the tool don't quite match up.
-  string objectFile = outputFilename + ".o";
+  string objectFile = outputFilename.str() + ".o";
   compile(m, objectFile);
   link(objectFile, outputFilename);
 }
 
 
 static void
-saveModule(Module &m, StringRef const filename) {
+saveModule(Module& m, StringRef filename) {
   std::error_code errc;
   raw_fd_ostream out(filename.data(), errc, sys::fs::F_None);
 
@@ -234,8 +239,8 @@ prepareLinkingPaths(SmallString<32> invocationPath) {
   if (!invocationPath.empty()) {
     libPaths.push_back(invocationPath.str());
   }
-  // If the builder doesn't plan on installing it, we still need to get to the
-  // runtime library somehow, so just build in the path to the temporary one.
+// If the builder doesn't plan on installing it, we still need to get to the
+// runtime library somehow, so just build in the path to the temporary one.
 #ifdef CMAKE_INSTALL_PREFIX
   libPaths.push_back(CMAKE_INSTALL_PREFIX "/lib");
 #elif defined(CMAKE_TEMP_LIBRARY_PATH)
@@ -253,7 +258,7 @@ prepareLinkingPaths(SmallString<32> invocationPath) {
 
 
 static void
-instrumentForDynamicCount(Module &m) {
+instrumentForDynamicCount(Module& m) {
   InitializeAllTargets();
   InitializeAllTargetMCs();
   InitializeAllAsmPrinters();
@@ -277,7 +282,7 @@ instrumentForDynamicCount(Module &m) {
 
 
 int
-main(int argc, char **argv) {
+main(int argc, char** argv) {
   // This boilerplate provides convenient stack traces and clean LLVM exit
   // handling. It also initializes the built in support for convenient
   // command line option handling.
@@ -303,4 +308,3 @@ main(int argc, char **argv) {
 
   return 0;
 }
-

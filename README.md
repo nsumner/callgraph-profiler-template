@@ -51,5 +51,5 @@ program like `./calls` in the above example should produce a file called
 `profile-results.csv` in the current directory. The file should be formatted
 as follows:
 
-    <caller function name>, <call site file name>, <call site line #>, <callee function name>, <(call site,callee) frquency>
+    <caller function name>, <call site file name>, <call site line #>, <callee function name>, <(call site,callee) frequency>
 

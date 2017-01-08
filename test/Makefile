@@ -12,8 +12,8 @@
 #   make clean
 #
 
-LLVM_BIN     := /home/nick/research/llvm-3.9.cmake/bin
-PROFILER     := ../39/bin/callgraph-profiler
+LLVM_BIN     := /usr/shared/CMPT/wsumner/llvm/bin
+PROFILER     := ../../cgbuild/bin/callgraph-profiler
 CSV_TO_GV    := ../scripts/csv_to_gv.py
 CLANG        := $(LLVM_BIN)/clang
 OPT          := $(LLVM_BIN)/opt
@@ -23,12 +23,16 @@ SOURCE_FILES := $(sort $(wildcard c/*.c))
 ASM_FILES    := $(addprefix ll/,$(notdir $(SOURCE_FILES:.c=.ll)))
 BIN_FILES    := $(addprefix bin/,$(basename $(notdir $(ASM_FILES))))
 CSV_FILES    := $(addprefix csv/,$(addsuffix .csv, $(notdir $(BIN_FILES))))
+GV_FILES     := $(addprefix gv/,$(notdir $(CSV_FILES:.csv=.gv)))
+IMG_FILES    := $(addprefix img/,$(notdir $(GV_FILES:.gv=.png)))
 
 
-all: $(CSV_FILES)
+all: $(IMG_FILES)
 llvmasm: $(ASM_FILES)
 bin: $(BIN_FILES)
 csv: $(CSV_FILES)
+gv: $(GV_FILES)
+img: $(IMG_FILES)
 
 
 ll/%.ll: c/%.c
@@ -41,9 +45,15 @@ csv/%.csv: bin/%
 	$< 1 2 3 4 5 6
 	mv profile-results.csv $@
 
+gv/%.gv: csv/%.csv
+	$(CSV_TO_GV) $< > $@
+
+img/%.png: gv/%.gv
+	$(DOT) $< -Tpng -o $@
+
 clean:
-	$(RM) -f $(CSV_FILES) bin/*
+	$(RM) -f img/* gv/* csv/* bin/*
 
 veryclean:
-	$(RM) -f $(CSV_FILES) $(ASM_FILES) bin/*
+	$(RM) -f img/* gv/* csv/* bin/* ll/*
 

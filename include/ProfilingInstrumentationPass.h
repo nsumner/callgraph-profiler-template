@@ -19,7 +19,7 @@ struct ProfilingInstrumentationPass : public llvm::ModulePass {
     : llvm::ModulePass(ID)
       { }
 
-  virtual bool runOnModule(llvm::Module &m) override;
+  bool runOnModule(llvm::Module& m) override;
 };
 
 
