@@ -253,7 +253,9 @@ prepareLinkingPaths(SmallString<32> invocationPath) {
   libPaths.push_back(TEMP_LIBRARY_PATH "/Release/lib/");
 #endif
   libraries.push_back(RUNTIME_LIB);
+#ifndef __APPLE__
   libraries.push_back("rt");
+#endif
 }
 
 
