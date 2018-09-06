@@ -12,11 +12,11 @@
 #   make clean
 #
 
-LLVM_BIN     := /usr/shared/CMPT/wsumner/llvm/bin
+LLVM_BIN     := /usr/shared/CMPT/faculty/wsumner/llvm/bin/
 PROFILER     := ../../cgbuild/bin/callgraph-profiler
 CSV_TO_GV    := ../scripts/csv_to_gv.py
-CLANG        := $(LLVM_BIN)/clang
-OPT          := $(LLVM_BIN)/opt
+CLANG        := $(LLVM_BIN)clang
+OPT          := $(LLVM_BIN)opt
 DOT          := dot
 RM           := rm
 SOURCE_FILES := $(sort $(wildcard c/*.c))
